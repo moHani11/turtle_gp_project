@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 
-import rospy
+import rospy, roslaunch
 from turtlesim.srv import Spawn
-import random 
-import roslaunch
+import random, os
+
+current_directory = os.path.dirname(os.path.abspath(__file__))
+os.chdir(current_directory)
+
+launch_file_path = f"../launch/try1.launch"
+    # da launch file el bey3mel run lel node el hatmove el turtle 
+    # 34an at7akem fel turtle 3alatool awel mate3ml spawn
 
 # x is from 0 to 11
 # y is from 0 to 11
@@ -26,8 +32,6 @@ def spawn_turtle():
     except rospy.ServiceException as e:
         rospy.logerr(f"Service call failed: {e}")
 
-    launch_file_path = '/home/mohamed_hani/catkin_ws/src/turtlesim_project/launch/try1.launch'
-    # da launch file el bey3mel run lel node el hatmove el turtle 
 
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
