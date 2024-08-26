@@ -1,0 +1,12 @@
+<launch>
+
+    <arg name="turtle_name" default="turtle1"/>  <!--baya5od argument esm el turtle-->
+
+    <node name="move_$(arg turtle_name)" pkg="turtlesim_project" type="move_turtle.py" output="screen">
+        <param name="turtle" value="$(arg turtle_name)"/>
+    </node>   <!--beycall el movement node lel turtle el lesa ma3molha spawn-->
+
+    <node name="clear_$(arg turtle_name)_track" pkg="turtlesim_project" type="clear_turtle_track.py" output="screen">
+    </node> <!--beycall el node el btemsa7 el tracks-->
+
+</launch>
