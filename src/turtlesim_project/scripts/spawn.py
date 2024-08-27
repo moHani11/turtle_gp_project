@@ -2,9 +2,8 @@
 
 import rospy
 from turtlesim.srv import Spawn
-import random, os
-import subprocess
-
+import random, os, subprocess
+from std_msgs.msg import String
 current_directory = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_directory)
 
@@ -17,23 +16,35 @@ launch_file_path = os.path.join(current_directory, "../launch/try1.launch")
 
 
 def spawn_turtle():
+    turtle_name='turtle1'
     x = random.uniform(0, 11)
     y = random.uniform(0, 11)
     angle = random.uniform(0, 360)  
     rospy.init_node('turtle_spawner', anonymous=True)  # bey3mel node  betspawn turtle fe makan random
 
-    rospy.wait_for_service('/spawn')
+    isMaster = str(rospy.get_param('~master', 'no'))
+    rospy.loginfo(f"isMaster: {isMaster}")
 
-    try:
-        spawn_turtle = rospy.ServiceProxy('/spawn', Spawn)
-        response = spawn_turtle(x, y, angle, '')
-        
-        rospy.loginfo(f"Spawned a turtle named: {response.name}")
+    if isMaster != 'True':
 
-    except rospy.ServiceException as e:
-        rospy.logerr(f"Service call failed: {e}")
+        rospy.wait_for_service('/spawn')
+        try:
+            spawn_turtle = rospy.ServiceProxy('/spawn', Spawn)
+            response = spawn_turtle(x, y, angle, '')
+            turtle_name = response.name
+            
+            rospy.loginfo(f"Spawned a turtle named: {turtle_name}")
+            pub = rospy.Publisher("/spawns", String, queue_size=10)
+            rate = rospy.Rate(1)
+            for i in range(2):
+                pub.publish(turtle_name)
+                rate.sleep()
 
-    command = f"roslaunch turtlesim_project moveLaunch.launch turtle_name:={response.name}"
+        except rospy.ServiceException as e:
+            rospy.logerr(f"Service call failed: {e}")
+
+
+    command = f"roslaunch turtlesim_project moveLaunch.launch turtle_name:={turtle_name}"
     # beysta5dem el bash command line 34an ycall el .launch file we yedeelo arguments
 
     subprocess.run(command, shell=True, capture_output=True, text=True)
