@@ -3,7 +3,6 @@
 import rospy
 from turtlesim.msg import Pose
 from std_msgs.msg import String
-from spawn.msg import AddNewTurtle, AttackNotif
 
 class Turtle:
     def __init__(self, name, x=0, y=0, radius=1):
@@ -34,8 +33,8 @@ class GameEngine:
         
         for i in range(self.max_turtles):
             self.pose_subscriber = rospy.Subscriber('/turtle1/pose', Pose, self.update_pose)
-            self.pose_subscriber = rospy.Subscriber('/turtle1/add', AddNewTurtle, self.create_turtle)
-            self.pose_subscriber = rospy.Subscriber('/turtle1/attacks', AttackNotif, self.handle_attack)
+            self.pose_subscriber = rospy.Subscriber('/spawn', String , self.create_turtle)
+            self.pose_subscriber = rospy.Subscriber('/attacks', String , self.handle_attack)
 
 
 
