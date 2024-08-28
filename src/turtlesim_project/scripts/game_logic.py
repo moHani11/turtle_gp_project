@@ -2,13 +2,8 @@
 
 import rospy
 from turtlesim.msg import Pose
+from turtlesim.srv import Kill
 from std_msgs.msg import String
-
-def pose_callback(pose_message):
-    x = pose_message.x
-    y = pose_message.y
-
-    return x, y
 
 class Turtle:
     def __init__(self, name, x=0, y=0, radius=1):
@@ -20,7 +15,7 @@ class Turtle:
         self.radius = radius  #turtle's radius
 
     def apply_damage(self):
-        self.health -= 10
+        self.health -= 50
         if self.health < 0:
             self.health = 0
 
@@ -30,11 +25,12 @@ class GameEngine:
     def __init__(self):
         rospy.init_node('game_engine')
 
+        self.numTurtles = 1
         self.max_turtles = 7
         self.turtles = []
         self.game_over = False
         self.winner = None
-        self.collision_damage = 10  # damage amount for each collision
+        self.collision_damage = 50  # damage amount for each collision
         self.pose_subscribers = []
 
         self.spawns_subscriber = rospy.Subscriber('/spawns', String, self.create_turtle)
@@ -76,6 +72,7 @@ class GameEngine:
             new_turtle = Turtle(name=msg.data, x=0, y=0)
             self.turtles.append(new_turtle)
             rospy.loginfo(f"Added new turtle: {new_turtle.name}")
+            self.numTurtles+=1
 
    
     def update_poses(self, pose, turtle_index):
@@ -113,30 +110,34 @@ class GameEngine:
         else:
             rospy.loginfo(f"{attacker.name} has no attacks left!\n\n")
 
+        if defender.health == 0:
+            defender.x, defender.y = 100,100
+            self.remove_turtle(defender.name)
 
-
-    def check_game_over(self):
-            
-        rospy.loginfo(f"Is it even checking: {self.winner}")
-        if all(turtle.attacks_left == 0 for turtle in self.turtles):
-            self.game_over = True
+        if all(turtle.attacks_left == 0 for turtle in self.turtles) or self.numTurtles < 2:
             winner_index = max(range(len(self.turtles)), key=lambda i: self.turtles[i].health)
             self.winner = self.turtles[winner_index].name
             rospy.loginfo(f"Game Over! Winner: {self.winner}")
-            msg = String()
-            msg.data = f"Game Over! Winner: {self.winner}"
-            self.pub.publish(msg)
+            rospy.signal_shutdown("THE GAME ENDED.")
+            return
+        
+    def remove_turtle(self, turtle_name):
+     rospy.wait_for_service('/kill')
+     try:
+         kill_turtle = rospy.ServiceProxy('/kill', Kill)
+         kill_turtle(turtle_name)
+         self.numTurtles-=1
+         rospy.loginfo(f"Turtle {turtle_name} has been removed.")
+     except rospy.ServiceException:
+         pass
+        #  rospy.logerr(f"Service call failed: {e}")
 
-    def game_loop(self):
-      while not rospy.is_shutdown() and not self.game_over:
-        self.check_game_over()
-        self.rate.sleep()
+
 
 
 
 def main():
     game_engine = GameEngine()
-    game_engine.game_loop()
 
 if __name__ == '__main__':
     main()
