@@ -2,6 +2,8 @@
 
 import rospy
 from geometry_msgs.msg import Twist
+from std_msgs.msg import String
+
 import sys, select, termios, tty
 
 # Function to get key press
@@ -24,21 +26,24 @@ if __name__ == "__main__":
 
     # Publisher to the turtle's cmd_vel topic
     pub = rospy.Publisher(f'/{turtle_name}/cmd_vel', Twist, queue_size=10)
-    
+    pub2 = rospy.Publisher('/attacks', String, queue_size=10)
+
     speed = 2.0  # Linear speed
     turn = 2.0   # Angular speed
 
     while not rospy.is_shutdown():
         key = getKey()
         twist = Twist()
+        if key == "q":
+            pub2.publish(turtle_name)
 
-        if key == 'w':  # Move forward
+        if key == 'w':  
             twist.linear.x = speed
-        elif key == 's':  # Move backward
+        elif key == 's':  
             twist.linear.x = -speed
-        elif key == 'a':  # Turn left
+        elif key == 'a':  
             twist.angular.z = turn
-        elif key == 'd':  # Turn right
+        elif key == 'd':  
             twist.angular.z = -turn
         elif key == '\x03':  # Press Ctrl-C to stop
             break
