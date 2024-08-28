@@ -33,7 +33,7 @@ class GameEngine:
         
         for i in range(self.max_turtles):
             self.pose_subscriber = rospy.Subscriber('/turtle1/pose', Pose, self.update_pose)
-            self.pose_subscriber = rospy.Subscriber('/spawn', String , self.create_turtle)
+            self.pose_subscriber = rospy.Subscriber('/spawns', String , self.create_turtle)
             self.pose_subscriber = rospy.Subscriber('/attacks', String , self.handle_attack)
 
 
