@@ -58,7 +58,7 @@ class GameEngine:
         default_name = "turtle1"
         default_turtle = Turtle(name=default_name, x=0, y=0)
         self.turtles.append(default_turtle)
-        rospy.loginfo(f"Added default turtle: {default_turtle.name} at position ({default_turtle.x}, {default_turtle.y})")
+        rospy.loginfo(f"Added default turtle: {default_turtle.name}")
 
 
     def create_turtle(self, msg):
