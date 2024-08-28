@@ -3,7 +3,12 @@
 import rospy
 from turtlesim.msg import Pose
 from std_msgs.msg import String
-from spawn.msg import AddNewTurtle, AttackNotif
+
+def pose_callback(pose_message):
+    x = pose_message.x
+    y = pose_message.y
+
+    return x, y
 
 class Turtle:
     def __init__(self, name, x=0, y=0, radius=1):
@@ -30,12 +35,13 @@ class GameEngine:
         self.game_over = False
         self.winner = None
         self.collision_damage = 10  # damage amount for each collision
-
+        self.pose_subscribers = []
         
-        for i in range(self.max_turtles):
-            self.pose_subscriber = rospy.Subscriber('/turtle1/pose', Pose, self.update_pose)
-            self.pose_subscriber = rospy.Subscriber('/turtle1/add', AddNewTurtle, self.create_turtle)
-            self.pose_subscriber = rospy.Subscriber('/turtle1/attacks', AttackNotif, self.handle_attack)
+        for i in range( len(self.turtles()) ):
+            self.turtles[i].x, self.turtles[i].y = rospy.Subscriber(f'/turtle{i+1}/pose', Pose, pose_callback) 
+
+        self.spawns_subscriber = rospy.Subscriber('/spawns', String, self.create_turtle)
+        self.attacks_subscriber = rospy.Subscriber('/attacks', String, self.handle_attack)
 
 
 
@@ -45,6 +51,7 @@ class GameEngine:
         
         pub = rospy.Publisher('game_logic', String, queue_size=10)
         self.publish_game_start_message()
+        self.add_default_turtle()
 
 
         rospy.spin()  # for the node to keep running and processing incoming messages throughout the game
@@ -56,56 +63,69 @@ class GameEngine:
         self.pub.publish(msg)
 
     def add_default_turtle(self):
-        default_name = "Turtle_1"
+        default_name = "turtle1"
         default_turtle = Turtle(name=default_name, x=0, y=0)
         self.turtles.append(default_turtle)
         rospy.loginfo(f"Added default turtle: {default_turtle.name} at position ({default_turtle.x}, {default_turtle.y})")
 
 
     def create_turtle(self, msg):
-        if len(self.turtles) > 7:
-            rospy.logwarn("Maximum number of turtles reached can't add more!")
-            return
-        
-        # Create a new turtle from the message data
-        new_turtle = Turtle(name=msg.name, x=0, y=0)
-        self.turtles.append(new_turtle)
-        rospy.loginfo(f"Added new turtle: {new_turtle.name} at position ({new_turtle.x}, {new_turtle.y})")
+
+        if msg.data :
+            if len(self.turtles) > 7:
+                rospy.logwarn("Maximum number of turtles reached can't add more!")
+                return
+            
+            # Create a new turtle from the message data
+            new_turtle = Turtle(name=msg.name, x=0, y=0)
+            self.turtles.append(new_turtle)
+            rospy.loginfo(f"Added new turtle: {new_turtle.name}")
 
    
-    def update_pose(self, data):
-        self.pose = data
-        self.pose.x = round(self.pose.x, 4)
-        self.pose.y = round(self.pose.y, 4)
+    # def update_poses(self, data):
+    #     for turtle in self.turtles:
+
+    #         self.pose = data
+    #         self.pose.x = round(self.pose.x, 4)
+    #         self.pose.y = round(self.pose.y, 4)
 
     
     def handle_attack(self, msg):
-        attacker_name = msg.attacker_name
-        attacker_x = msg.attacker_x
-        attacker_y = msg.attacker_y
+        if msg.data: 
+            attacker_name = msg.data
+            # Find the attacker turtle by name
+            for i in range( len(self.turtles) ):
+                if self.turtels[i].name == attacker_name:
+                    attacker = self.turtles[i]
+                    break 
 
-        # Find the attacker turtle by name
-        attacker = next((t for t in self.turtles if t.name == attacker_name), None)
-        if attacker is None:
-            rospy.logwarn(f"Attacker turtle with name {attacker_name} not found.")
-            return
+            attacker_x = msg.attacker_x
+            attacker_y = msg.attacker_y
 
-        # Update the attacker position
-        attacker.update_position(attacker_x, attacker_y)
+            # if attacker is None:
+            #     rospy.logwarn(f"Attacker turtle with name {attacker_name} not found.")
+            #     return
 
-        # Check distance and apply damage
-        for turtle in self.turtles:
-            if turtle.name != attacker_name:  # Skip the attacker itself
-                distance = ((attacker.x - turtle.x) ** 2 + (attacker.y - turtle.y) ** 2) ** 0.5
-                if distance < (attacker.radius + turtle.radius):  # Check if within attack range
-                    self.apply_damage(attacker, turtle)
-                    rospy.loginfo(f"{attacker.name} attacked {turtle.name}!")
+            # Update the attacker position
+            # attacker.update_position(attacker_x, attacker_y)
 
+            # Check distance and apply damage
+            for turtle in self.turtles:
+                if turtle.name != attacker_name:  # Skip the attacker itself
+                    distance = ((attacker.x - turtle.x) ** 2 + (attacker.y - turtle.y) ** 2) ** 0.5
+                    if distance < (attacker.radius + turtle.radius):  # Check if within attack range
+                        self.apply_damage(attacker, turtle)
+                        
 
     def apply_damage(self, attacker, defender):
         if attacker.attacks_left > 0:
             defender.apply_damage(self.collision_damage)
             attacker.attacks_left -= 1
+            rospy.loginfo(f"{attacker.name} attacked {defender.name}!")
+        else:
+            rospy.loginfo(f"{attacker.name} has no attacks left!")
+
+
 
     def check_game_over(self):
         if all(turtle.attacks_left == 0 for turtle in self.turtles):
@@ -126,7 +146,6 @@ class GameEngine:
 
 def main():
     game_engine = GameEngine()
-    game_engine.add_default_turtle()
     game_engine.game_loop()
 
 if __name__ == '__main__':
